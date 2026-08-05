@@ -92,7 +92,7 @@ io.on('connection', (socket) => {
   socket.on('ping', (data) => {
     socket.emit('pong', { timestamp: data.timestamp });
   });
-  
+
   let currentRoomId = null;
 
   socket.on('join-room', ({ roomId, name }) => {
@@ -134,6 +134,19 @@ io.on('connection', (socket) => {
     room.messages.push(msg);
     io.to(roomId).emit('chat-message', msg);
   });
+
+  socket.on('voice-start', ({ roomId, userName }) => {
+    socket.to(roomId).emit('voice-start', { userName });
+  });
+
+  socket.on('voice-chunk', ({ roomId, audioData, userName }) => {
+    socket.to(roomId).emit('voice-data', { audioChunk: audioData, userName });
+  });
+
+  socket.on('voice-end', ({ roomId }) => {
+    socket.to(roomId).emit('voice-end');
+  });
+
 
   socket.on('disconnect', () => {
     if (!currentRoomId) return;

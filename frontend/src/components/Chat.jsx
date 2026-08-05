@@ -6,10 +6,9 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
   const [isRecording, setIsRecording] = useState(false);
   const [activeSpeaker, setActiveSpeaker] = useState(null);
   const [micPermissionDenied, setMicPermissionDenied] = useState(false);
-  
+
   const listRef = useRef(null);
   const mediaRecorderRef = useRef(null);
-  const audioContextRef = useRef(null);
   const streamRef = useRef(null);
   const audioElementRef = useRef(null);
 
@@ -21,27 +20,24 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
     return () => socket.off('chat-message', onMessage);
   }, [socket]);
 
-  // Handle incoming voice data
+  // Handle incoming voice data from socket
   useEffect(() => {
     const onVoiceStart = (data) => {
       setActiveSpeaker(data.userName);
-      // Emit event to reduce video volume
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: true } }));
     };
 
     const onVoiceData = (data) => {
-      if (audioElementRef.current) {
-        const audioData = new Uint8Array(Object.values(data.audioChunk));
-        const blob = new Blob([audioData], { type: 'audio/wav' });
-        const url = URL.createObjectURL(blob);
-        audioElementRef.current.src = url;
-        audioElementRef.current.play().catch(() => {});
+      if (audioElementRef.current && data.audioChunk) {
+        const audioBlob = new Blob([data.audioChunk], { type: 'audio/webm' });
+        const url = URL.createObjectURL(audioBlob);
+        const player = new Audio(url);
+        player.play().catch((err) => console.error('Audio play error:', err));
       }
     };
 
     const onVoiceEnd = () => {
       setActiveSpeaker(null);
-      // Emit event to restore video volume
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: false } }));
     };
 
@@ -67,40 +63,32 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
         streamRef.current = stream;
       }
 
-      const mediaRecorder = new MediaRecorder(streamRef.current, {
-        mimeType: 'audio/webm',
-      });
+      const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType: 'audio/webm' });
 
-      const audioChunks = [];
-
+      // Emit chunk every time data is available (streaming mode)
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          audioChunks.push(event.data);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            socket.emit('voice-chunk', {
+              roomId,
+              audioData: reader.result,
+              userName: name,
+            });
+          };
+          reader.readAsArrayBuffer(event.data);
         }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          socket.emit('voice-chunk', {
-            roomId,
-            audioData: reader.result,
-            userName: name,
-          });
-        };
-        reader.readAsArrayBuffer(blob);
       };
 
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
       setMicPermissionDenied(false);
-      
-      // Emit voice start event
+
       socket.emit('voice-start', { roomId, userName: name });
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: true } }));
-      
-      mediaRecorder.start();
+
+      // Record in 250ms slice intervals for low latency transmission
+      mediaRecorder.start(250);
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         setMicPermissionDenied(true);
@@ -114,33 +102,10 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      
-      // Emit voice end event
+
       socket.emit('voice-end', { roomId });
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: false } }));
     }
-  };
-
-  const handleMouseDown = () => {
-    if (!micPermissionDenied) {
-      startRecording();
-    }
-  };
-
-  const handleMouseUp = () => {
-    stopRecording();
-  };
-
-  const handleTouchStart = (e) => {
-    e.preventDefault();
-    if (!micPermissionDenied) {
-      startRecording();
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    e.preventDefault();
-    stopRecording();
   };
 
   const send = (e) => {
@@ -161,6 +126,7 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
           </p>
         )}
       </div>
+
       <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
         {messages.map((m, i) =>
           m.system ? (
@@ -175,6 +141,7 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
           )
         )}
       </div>
+
       <form onSubmit={send} className="p-3 border-t border-panel2 flex gap-2">
         <input
           value={draft}
@@ -189,34 +156,31 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
           Send
         </button>
       </form>
-      
-      {/* Voice Button */}
+
+      {/* Walkie-Talkie Button */}
       <div className="p-3 border-t border-panel2">
         <button
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className={`w-full py-3 rounded-sm font-display font-semibold transition ${
-            isRecording
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          onMouseLeave={stopRecording}
+          onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+          onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+          className={`w-full py-3 rounded-sm font-display font-semibold transition select-none ${isRecording
               ? 'bg-red-500 text-white animate-pulse'
               : 'bg-green-600 text-white hover:brightness-110'
-          } ${micPermissionDenied ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            } ${micPermissionDenied ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           disabled={micPermissionDenied}
-          title="Hold to talk (walkie-talkie mode)"
         >
-          {isRecording ? '🎤 RECORDING...' : '🎤 HOLD TO TALK'}
+          {isRecording ? '🎤 TRANSMITTING...' : '🎤 HOLD TO TALK'}
         </button>
         {micPermissionDenied && (
           <p className="text-xs text-red-400 mt-2 text-center">
-            Microphone access denied. Please enable it in your browser settings.
+            Microphone access denied. Please enable it in browser settings.
           </p>
         )}
       </div>
 
-      {/* Hidden audio element for playback */}
-      <audio ref={audioElementRef} style={{ display: 'none' }} />
+      <audio ref={audioElementRef} className="hidden" />
     </div>
   );
 }
