@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
-const APP_ID = import.meta.env.VITE_GOOGLE_APP_ID; // Google Cloud project number
+const APP_ID = import.meta.env.VITE_GOOGLE_APP_ID;
 
 export default function DrivePicker({ accessToken, onPick }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pickerReady, setPickerReady] = useState(false);
 
-  // Safely load the gapi picker library inside useEffect
   useEffect(() => {
     const loadGapi = () => {
       if (window.gapi) {
@@ -19,7 +18,6 @@ export default function DrivePicker({ accessToken, onPick }) {
       }
     };
 
-    // If gapi script isn't on window yet, attach it dynamically
     if (!window.gapi) {
       const script = document.createElement('script');
       script.src = 'https://apis.google.com/js/api.js';
@@ -45,10 +43,9 @@ export default function DrivePicker({ accessToken, onPick }) {
 
     setLoading(true);
 
-    // Using DOCS view with explicit video MIME types ensures newly uploaded, 
-    // unprocessed videos are not hidden by Google's automatic filters.
-    const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
-      .setMimeTypes('video/mp4,video/webm,video/x-matroska,video/quicktime,video/avi')
+    // Filter strictly to videos owned by the current user
+    const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS_VIDEOS)
+      .setOwnedByMe(true)
       .setIncludeFolders(true)
       .setSelectFolderEnabled(false);
 
