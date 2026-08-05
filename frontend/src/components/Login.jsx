@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const SCOPE = 'https://www.googleapis.com/auth/drive.readonly profile';
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file';
 
 export default function Login({ onAuth }) {
   const [ready, setReady] = useState(false);
@@ -22,9 +22,11 @@ export default function Login({ onAuth }) {
       setError('Missing VITE_GOOGLE_CLIENT_ID — see README for setup.');
       return;
     }
+
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
-      scope: SCOPE,
+      scope: SCOPES, // Fixed variable name (SCOPES instead of SCOPE)
+      prompt: 'consent', // Forces Google to fetch up-to-date scopes and permissions
       callback: (resp) => {
         if (resp.error) {
           setError(resp.error);
@@ -33,6 +35,7 @@ export default function Login({ onAuth }) {
         onAuth({ accessToken: resp.access_token });
       },
     });
+
     tokenClient.requestAccessToken();
   };
 
