@@ -75,7 +75,7 @@ export default function App() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Alex"
+                placeholder="name"
                 className="w-full bg-[#090317] border border-purple-500/30 rounded-xl px-4 py-3 text-sm text-purple-100 placeholder-purple-400/30 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400/50 transition-all"
               />
             </div>
