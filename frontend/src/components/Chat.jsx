@@ -10,10 +10,7 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
   const listRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
-
-  // Audio Playback Queue Refs
-  const audioQueueRef = useRef([]);
-  const isPlayingRef = useRef(false);
+  const audioChunksRef = useRef([]);
 
   useEffect(() => setMessages(initialMessages), [initialMessages]);
 
@@ -23,49 +20,24 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
     return () => socket.off('chat-message', onMessage);
   }, [socket]);
 
-  // Queue-based audio player for smooth sequential playback
-  const playNextChunk = () => {
-    if (audioQueueRef.current.length === 0) {
-      isPlayingRef.current = false;
-      return;
-    }
-
-    isPlayingRef.current = true;
-    const chunkData = audioQueueRef.current.shift();
-    const blob = new Blob([chunkData], { type: 'audio/webm' });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      playNextChunk();
-    };
-
-    audio.onerror = () => {
-      URL.revokeObjectURL(url);
-      playNextChunk();
-    };
-
-    audio.play().catch(() => playNextChunk());
-  };
-
-  // Handle incoming voice data from Socket.io
+  // Handle incoming full voice messages
   useEffect(() => {
     const onVoiceStart = (data) => {
       setActiveSpeaker(data.userName);
-      audioQueueRef.current = []; // Clear old queue on new broadcast
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: true } }));
     };
 
     const onVoiceData = (data) => {
       if (data.audioChunk) {
-        // Push incoming array buffer chunk to queue
-        audioQueueRef.current.push(data.audioChunk);
+        const blob = new Blob([data.audioChunk], { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
         
-        // Start playing queue if not currently playing
-        if (!isPlayingRef.current) {
-          playNextChunk();
-        }
+        audio.play().catch((err) => console.error('Audio play error:', err));
+        
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+        };
       }
     };
 
@@ -98,20 +70,30 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
         streamRef.current = stream;
       }
 
+      audioChunksRef.current = [];
       const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType: 'audio/webm' });
 
+      // Collect all chunks into an array during hold
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            socket.emit('voice-chunk', {
-              roomId,
-              audioData: reader.result,
-              userName: name,
-            });
-          };
-          reader.readAsArrayBuffer(event.data);
+          audioChunksRef.current.push(event.data);
         }
+      };
+
+      // When released, send complete valid audio blob
+      mediaRecorder.onstop = () => {
+        const fullBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          socket.emit('voice-chunk', {
+            roomId,
+            audioData: reader.result,
+            userName: name,
+          });
+          socket.emit('voice-end', { roomId });
+          window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: false } }));
+        };
+        reader.readAsArrayBuffer(fullBlob);
       };
 
       mediaRecorderRef.current = mediaRecorder;
@@ -121,8 +103,8 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
       socket.emit('voice-start', { roomId, userName: name });
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: true } }));
 
-      // Send 500ms voice slices (prevents micro-fragmentation)
-      mediaRecorder.start(500);
+      // Record continuously without slicing
+      mediaRecorder.start();
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         setMicPermissionDenied(true);
@@ -136,9 +118,6 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-
-      socket.emit('voice-end', { roomId });
-      window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: false } }));
     }
   };
 
