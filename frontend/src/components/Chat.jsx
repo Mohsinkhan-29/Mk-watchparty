@@ -32,9 +32,9 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
         const blob = new Blob([data.audioChunk], { type: 'audio/webm' });
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
-        
+
         audio.play().catch((err) => console.error('Audio play error:', err));
-        
+
         audio.onended = () => {
           URL.revokeObjectURL(url);
         };
@@ -65,7 +65,7 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
     try {
       if (!streamRef.current) {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true }
+          audio: { echoCancellation: true, noiseSuppression: true },
         });
         streamRef.current = stream;
       }
@@ -73,14 +73,12 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
       audioChunksRef.current = [];
       const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType: 'audio/webm' });
 
-      // Collect all chunks into an array during hold
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
-      // When released, send complete valid audio blob
       mediaRecorder.onstop = () => {
         const fullBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const reader = new FileReader();
@@ -103,7 +101,6 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
       socket.emit('voice-start', { roomId, userName: name });
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: true } }));
 
-      // Record continuously without slicing
       mediaRecorder.start();
     } catch (err) {
       if (err.name === 'NotAllowedError') {
@@ -130,65 +127,79 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-panel border border-panel2 rounded-sm">
-      <div className="px-4 py-3 border-b border-panel2">
-        <p className="font-display tracking-wide text-marquee text-sm">ROOM CHAT</p>
-        {activeSpeaker && (
-          <p className="text-xs text-green-400 mt-2 animate-pulse">
-            🎤 {activeSpeaker} is speaking...
+    <div className="flex flex-col h-full bg-[#110726]/70 backdrop-blur-2xl border border-purple-500/20 rounded-2xl overflow-hidden shadow-2xl shadow-purple-950/50 font-['Plus_Jakarta_Sans',sans-serif]">
+      {/* Header */}
+      <div className="px-5 py-3.5 border-b border-purple-500/20 bg-purple-950/30 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse" />
+          <p className="font-bold text-xs tracking-widest text-fuchsia-300 uppercase">
+            ROOM CHAT
           </p>
+        </div>
+        {activeSpeaker && (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium animate-pulse">
+            <span>🎤</span>
+            <span>{activeSpeaker} is speaking...</span>
+          </div>
         )}
       </div>
 
-      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      {/* Messages List */}
+      <div ref={listRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3 scrollbar-thin scrollbar-thumb-purple-900 scrollbar-track-transparent">
         {messages.map((m, i) =>
           m.system ? (
-            <p key={i} className="text-xs text-muted italic text-center">
+            <p key={i} className="text-[11px] text-purple-300/50 italic text-center py-1">
               {m.text}
             </p>
           ) : (
-            <div key={i} className="text-sm">
-              <span className="text-marquee font-medium">{m.name}: </span>
-              <span className="text-cream/90">{m.text}</span>
+            <div key={i} className="text-xs leading-relaxed bg-purple-950/30 border border-purple-500/10 rounded-xl p-2.5">
+              <span className="text-fuchsia-300 font-bold mr-1.5">{m.name}:</span>
+              <span className="text-purple-100/90">{m.text}</span>
             </div>
           )
         )}
       </div>
 
-      <form onSubmit={send} className="p-3 border-t border-panel2 flex gap-2">
+      {/* Text Chat Form */}
+      <form onSubmit={send} className="p-3 border-t border-purple-500/20 bg-purple-950/20 flex gap-2">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Say something…"
-          className="flex-1 bg-void border border-panel2 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-marquee"
+          className="flex-1 bg-[#090317] border border-purple-500/30 rounded-xl px-3.5 py-2 text-xs text-purple-100 placeholder-purple-400/40 focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400/50 transition-all"
         />
         <button
           type="submit"
-          className="bg-marquee text-void text-sm font-display px-4 rounded-sm hover:brightness-110 transition"
+          className="bg-gradient-to-r from-purple-600 via-purple-500 to-fuchsia-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:shadow-lg hover:shadow-purple-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-150"
         >
           Send
         </button>
       </form>
 
       {/* Walkie-Talkie Button */}
-      <div className="p-3 border-t border-panel2">
+      <div className="p-3 border-t border-purple-500/20 bg-purple-950/40">
         <button
           onMouseDown={startRecording}
           onMouseUp={stopRecording}
           onMouseLeave={stopRecording}
-          onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-          onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-          className={`w-full py-3 rounded-sm font-display font-semibold transition select-none ${
-            isRecording
-              ? 'bg-red-500 text-white animate-pulse'
-              : 'bg-green-600 text-white hover:brightness-110'
-          } ${micPermissionDenied ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            startRecording();
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            stopRecording();
+          }}
+          className={`w-full py-3 rounded-xl font-semibold text-xs tracking-wider transition-all duration-200 select-none shadow-md ${isRecording
+              ? 'bg-rose-600 text-white animate-pulse shadow-rose-900/50'
+              : 'bg-emerald-600/90 hover:bg-emerald-500 text-white shadow-emerald-950/50 hover:scale-[1.01] active:scale-[0.99]'
+            } ${micPermissionDenied ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           disabled={micPermissionDenied}
         >
           {isRecording ? '🎤 TRANSMITTING...' : '🎤 HOLD TO TALK'}
         </button>
         {micPermissionDenied && (
-          <p className="text-xs text-red-400 mt-2 text-center">
+          <p className="text-[11px] text-rose-400/90 mt-2 text-center font-medium">
             Microphone access denied. Please enable it in browser settings.
           </p>
         )}
