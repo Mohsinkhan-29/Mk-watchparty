@@ -10,7 +10,10 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
   const listRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
-  const audioElementRef = useRef(null);
+
+  // Audio Playback Queue Refs
+  const audioQueueRef = useRef([]);
+  const isPlayingRef = useRef(false);
 
   useEffect(() => setMessages(initialMessages), [initialMessages]);
 
@@ -20,19 +23,49 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
     return () => socket.off('chat-message', onMessage);
   }, [socket]);
 
-  // Handle incoming voice data from socket
+  // Queue-based audio player for smooth sequential playback
+  const playNextChunk = () => {
+    if (audioQueueRef.current.length === 0) {
+      isPlayingRef.current = false;
+      return;
+    }
+
+    isPlayingRef.current = true;
+    const chunkData = audioQueueRef.current.shift();
+    const blob = new Blob([chunkData], { type: 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      playNextChunk();
+    };
+
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      playNextChunk();
+    };
+
+    audio.play().catch(() => playNextChunk());
+  };
+
+  // Handle incoming voice data from Socket.io
   useEffect(() => {
     const onVoiceStart = (data) => {
       setActiveSpeaker(data.userName);
+      audioQueueRef.current = []; // Clear old queue on new broadcast
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: true } }));
     };
 
     const onVoiceData = (data) => {
-      if (audioElementRef.current && data.audioChunk) {
-        const audioBlob = new Blob([data.audioChunk], { type: 'audio/webm' });
-        const url = URL.createObjectURL(audioBlob);
-        const player = new Audio(url);
-        player.play().catch((err) => console.error('Audio play error:', err));
+      if (data.audioChunk) {
+        // Push incoming array buffer chunk to queue
+        audioQueueRef.current.push(data.audioChunk);
+        
+        // Start playing queue if not currently playing
+        if (!isPlayingRef.current) {
+          playNextChunk();
+        }
       }
     };
 
@@ -59,15 +92,16 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
   const startRecording = async () => {
     try {
       if (!streamRef.current) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true }
+        });
         streamRef.current = stream;
       }
 
       const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType: 'audio/webm' });
 
-      // Emit chunk every time data is available (streaming mode)
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           const reader = new FileReader();
           reader.onloadend = () => {
             socket.emit('voice-chunk', {
@@ -87,8 +121,8 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
       socket.emit('voice-start', { roomId, userName: name });
       window.dispatchEvent(new CustomEvent('voice-active', { detail: { active: true } }));
 
-      // Record in 250ms slice intervals for low latency transmission
-      mediaRecorder.start(250);
+      // Send 500ms voice slices (prevents micro-fragmentation)
+      mediaRecorder.start(500);
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         setMicPermissionDenied(true);
@@ -99,7 +133,7 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
 
@@ -165,10 +199,11 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
           onMouseLeave={stopRecording}
           onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
           onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-          className={`w-full py-3 rounded-sm font-display font-semibold transition select-none ${isRecording
+          className={`w-full py-3 rounded-sm font-display font-semibold transition select-none ${
+            isRecording
               ? 'bg-red-500 text-white animate-pulse'
               : 'bg-green-600 text-white hover:brightness-110'
-            } ${micPermissionDenied ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          } ${micPermissionDenied ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           disabled={micPermissionDenied}
         >
           {isRecording ? '🎤 TRANSMITTING...' : '🎤 HOLD TO TALK'}
@@ -179,8 +214,6 @@ export default function Chat({ socket, roomId, name, initialMessages = [] }) {
           </p>
         )}
       </div>
-
-      <audio ref={audioElementRef} className="hidden" />
     </div>
   );
 }
