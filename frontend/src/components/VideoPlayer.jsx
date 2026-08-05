@@ -2,10 +2,12 @@ import { useEffect, useRef } from 'react';
 import { API_BASE } from '../hooks/useSocket';
 
 const DRIFT_TOLERANCE = 1.2; // seconds — ignore small sync corrections
+const VOICE_VOLUME_REDUCTION = 0.3; // Reduce video volume to 30% when voice is active
 
 export default function VideoPlayer({ socket, roomId, file, accessToken, initialPlayback }) {
   const videoRef = useRef(null);
   const suppressEmit = useRef(false);
+  const originalVolume = useRef(1);
 
   // Apply remote playback events without re-broadcasting them.
   useEffect(() => {
@@ -27,6 +29,26 @@ export default function VideoPlayer({ socket, roomId, file, accessToken, initial
     socket.on('playback-sync', applySync);
     return () => socket.off('playback-sync', applySync);
   }, [socket, initialPlayback]);
+
+  // Handle voice activity to reduce video volume
+  useEffect(() => {
+    const handleVoiceActive = (event) => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      if (event.detail.active) {
+        // Store original volume and reduce it
+        originalVolume.current = video.volume;
+        video.volume = originalVolume.current * VOICE_VOLUME_REDUCTION;
+      } else {
+        // Restore original volume
+        video.volume = originalVolume.current;
+      }
+    };
+
+    window.addEventListener('voice-active', handleVoiceActive);
+    return () => window.removeEventListener('voice-active', handleVoiceActive);
+  }, []);
 
   const emit = (action, currentTime) => {
     if (suppressEmit.current) return;
