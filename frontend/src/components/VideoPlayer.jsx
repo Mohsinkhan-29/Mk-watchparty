@@ -129,18 +129,6 @@ export default function VideoPlayer({
   };
 
   const toggleMute = () => {
-    const handleUnmutePlay = () => {
-      const video = videoRef.current;
-      if (!video) return;
-
-      video.muted = false;
-      video.play()
-        .then(() => {
-          setMuted(false);
-          setNeedsUserInteraction(false);
-        })
-        .catch(console.error);
-    };
   };
 
   if (!fileId) {
@@ -165,10 +153,12 @@ export default function VideoPlayer({
         {needsUserInteraction && !isHost && (
           <button
             type="button"
-            onClick={handleUnmutePlay}
+            onClick={() => videoRef.current?.play()
+              .then(() => setNeedsUserInteraction(false))
+              .catch(console.error)}
             className="absolute inset-0 z-30 bg-black/80 flex items-center justify-center text-white"
           >
-            Tap once to sync and enable sound
+            Click to join playback
           </button>
         )}
 
