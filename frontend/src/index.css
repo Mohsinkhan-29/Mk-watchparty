@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-void text-cream font-body;
+}
+
+/* Film-strip sprocket edge — the signature motif on the player frame */
+.sprocket-edge {
+  height: 10px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #0a0908 0px,
+    #0a0908 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  background-position: center;
+}
+
+.marquee-code {
+  letter-spacing: 0.35em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
