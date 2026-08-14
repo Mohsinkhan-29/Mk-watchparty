@@ -129,6 +129,11 @@ export default function VideoPlayer({
   };
 
   const toggleMute = () => {
+     const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = !video.muted;
+    setMuted(video.muted);
   };
 
   if (!fileId) {
