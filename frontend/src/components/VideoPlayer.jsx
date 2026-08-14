@@ -65,8 +65,14 @@ export default function VideoPlayer({
       }
 
       if (state.isPlaying && video.paused) {
+        // Muted playback is permitted automatically on most mobile browsers.
+        video.muted = true;
+
         video.play()
-          .then(() => setNeedsUserInteraction(false))
+          .then(() => {
+            setMuted(true);
+            setNeedsUserInteraction(true); // user taps once to enable sound
+          })
           .catch(() => setNeedsUserInteraction(true));
       } else if (!state.isPlaying && !video.paused) {
         video.pause();
@@ -123,11 +129,18 @@ export default function VideoPlayer({
   };
 
   const toggleMute = () => {
-    const video = videoRef.current;
-    if (!video) return;
+    const handleUnmutePlay = () => {
+      const video = videoRef.current;
+      if (!video) return;
 
-    video.muted = !video.muted;
-    setMuted(video.muted);
+      video.muted = false;
+      video.play()
+        .then(() => {
+          setMuted(false);
+          setNeedsUserInteraction(false);
+        })
+        .catch(console.error);
+    };
   };
 
   if (!fileId) {
@@ -152,12 +165,10 @@ export default function VideoPlayer({
         {needsUserInteraction && !isHost && (
           <button
             type="button"
-            onClick={() => videoRef.current?.play()
-              .then(() => setNeedsUserInteraction(false))
-              .catch(console.error)}
+            onClick={handleUnmutePlay}
             className="absolute inset-0 z-30 bg-black/80 flex items-center justify-center text-white"
           >
-            Click to join playback
+            Tap once to sync and enable sound
           </button>
         )}
 
@@ -167,9 +178,8 @@ export default function VideoPlayer({
           src={src}
           crossOrigin="anonymous"
           controls={isHost}
-          className={`w-full aspect-video bg-black object-contain outline-none ${
-            !isHost ? 'pointer-events-none' : ''
-          }`}
+          className={`w-full aspect-video bg-black object-contain outline-none ${!isHost ? 'pointer-events-none' : ''
+            }`}
           onLoadedMetadata={(event) => {
             setDuration(event.currentTarget.duration);
             setCurrentTime(event.currentTarget.currentTime);
