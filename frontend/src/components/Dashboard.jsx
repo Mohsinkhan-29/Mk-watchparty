@@ -83,12 +83,9 @@ export default function Dashboard({
           </button>
         </div>
       </header>
-
-      {/* Main Section */}
-      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <video
+<video
           autoPlay muted loop playsInline
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover -z-40"
           style={{ objectPosition: "80% 20%", opacity: 0.4 }}
         >
           <source
@@ -96,6 +93,9 @@ export default function Dashboard({
             type="video/mp4"
           />
         </video>
+      {/* Main Section */}
+      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
         {/* Left Column: Metrics & Watch History */}
         <div className="lg:col-span-7 space-y-6">
           <div className="grid grid-cols-2 gap-4">
