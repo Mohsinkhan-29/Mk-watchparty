@@ -86,7 +86,16 @@ export default function Dashboard({
 
       {/* Main Section */}
       <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+        <video
+          autoPlay muted loop playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: "80% 20%", opacity: 0.4 }}
+        >
+          <source
+            src="https://demo.awaikenthemes.com/assets/videos/artistic-video.mp4"
+            type="video/mp4"
+          />
+        </video>
         {/* Left Column: Metrics & Watch History */}
         <div className="lg:col-span-7 space-y-6">
           <div className="grid grid-cols-2 gap-4">
@@ -157,22 +166,20 @@ export default function Dashboard({
             <button
               type="button"
               onClick={() => setActiveTab('join')}
-              className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'join'
+              className={`py-2 text-xs font-semibold rounded-lg transition-all ${activeTab === 'join'
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-purple-300/70 hover:text-white'
-              }`}
+                }`}
             >
               Join Room
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('create')}
-              className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'create'
+              className={`py-2 text-xs font-semibold rounded-lg transition-all ${activeTab === 'create'
                   ? 'bg-fuchsia-600 text-white shadow-md'
                   : 'text-purple-300/70 hover:text-white'
-              }`}
+                }`}
             >
               Create Room
             </button>
