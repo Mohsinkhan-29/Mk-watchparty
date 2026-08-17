@@ -59,13 +59,36 @@ export default function Dashboard({
 
       {/* Navigation Header */}
       <header className="relative z-10 border-b border-purple-500/15 bg-[#110726]/40 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-fuchsia-500 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-purple-950">
-            MK
+        <div className="flex items-center gap-2">
+
+          <div
+            className="
+              w-7
+              h-7
+              rounded-lg
+              flex
+              items-center
+              justify-center
+            "
+          >
+            <img
+              src="../../public/minilogo.png"
+              alt="Logo"
+            />
           </div>
-          <span className="font-extrabold tracking-tight text-white text-lg">
-            WatchParty
+
+          <span
+            className="
+              text-sm
+              font-bold
+              tracking-tight
+              text-white
+            "
+          >
+            Stream
+            <span className="text-purple-400">lo</span>
           </span>
+
         </div>
 
         {/* User Status & Sign Out Button */}
@@ -167,8 +190,8 @@ export default function Dashboard({
               type="button"
               onClick={() => setActiveTab('join')}
               className={`py-2 text-xs font-semibold rounded-lg transition-all ${activeTab === 'join'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'text-purple-300/70 hover:text-white'
+                ? 'bg-purple-600 text-white shadow-md'
+                : 'text-purple-300/70 hover:text-white'
                 }`}
             >
               Join Room
@@ -177,8 +200,8 @@ export default function Dashboard({
               type="button"
               onClick={() => setActiveTab('create')}
               className={`py-2 text-xs font-semibold rounded-lg transition-all ${activeTab === 'create'
-                  ? 'bg-fuchsia-600 text-white shadow-md'
-                  : 'text-purple-300/70 hover:text-white'
+                ? 'bg-fuchsia-600 text-white shadow-md'
+                : 'text-purple-300/70 hover:text-white'
                 }`}
             >
               Create Room
