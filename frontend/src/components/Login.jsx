@@ -52,7 +52,7 @@ export default function Login({ onAuth, onBackToLanding }) {
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 animate-pulse" />
           <p className="font-semibold text-fuchsia-300 tracking-[0.3em] text-[10px] uppercase">
-            MK watchparty webapp
+            streamlo
           </p>
         </div>
 

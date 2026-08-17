@@ -7,6 +7,7 @@ import RoomBar from './components/RoomBar';
 import VideoPlayer from './components/VideoPlayer';
 import { useSocket } from './hooks/useSocket';
 
+
 export default function App() {
   // Initialize state directly from storage/URL to avoid flicker and duplicate renders
   const [authToken, setAuthToken] = useState(() => {
