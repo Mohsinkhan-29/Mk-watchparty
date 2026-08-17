@@ -54,8 +54,8 @@ export default function Dashboard({
   return (
     <div className="min-h-screen bg-[#070312] text-violet-50 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden flex flex-col">
       {/* Background Ambient Glows */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-1/2 -right-40 w-96 h-96 bg-fuchsia-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute -top-40  bg-purple-600/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/2  bg-fuchsia-600/15 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Navigation Header */}
       <header className="relative z-10 border-b border-purple-500/15 bg-[#110726]/40 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
@@ -83,7 +83,10 @@ export default function Dashboard({
           </button>
         </div>
       </header>
-<video
+
+      {/* Main Section */}
+      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <video
           autoPlay muted loop playsInline
           className="absolute inset-0 w-full h-full object-cover -z-40"
           style={{ objectPosition: "80% 20%", opacity: 0.4 }}
@@ -93,9 +96,6 @@ export default function Dashboard({
             type="video/mp4"
           />
         </video>
-      {/* Main Section */}
-      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
         {/* Left Column: Metrics & Watch History */}
         <div className="lg:col-span-7 space-y-6">
           <div className="grid grid-cols-2 gap-4">
