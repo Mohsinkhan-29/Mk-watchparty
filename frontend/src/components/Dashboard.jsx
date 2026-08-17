@@ -63,8 +63,8 @@ export default function Dashboard({
 
           <div
             className="
-              w-7
-              h-7
+              w-10
+              h-10
               rounded-lg
               flex
               items-center
@@ -72,14 +72,14 @@ export default function Dashboard({
             "
           >
             <img
-              src="../../public/minilogo.png"
+              src="/minilogo.png"
               alt="Logo"
             />
           </div>
 
           <span
             className="
-              text-sm
+              text-lg
               font-bold
               tracking-tight
               text-white
