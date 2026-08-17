@@ -255,7 +255,7 @@ export default function Landing({ onGetStarted }) {
           TOP BRAND MARK
           Appears only after video ends.
       ========================================================== */}
-      <div
+      {/* <div
         className={`
           absolute
           top-6
@@ -303,7 +303,7 @@ export default function Landing({ onGetStarted }) {
           </span>
 
         </div>
-      </div>
+      </div> */}
 
     </div >
   );
