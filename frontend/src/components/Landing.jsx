@@ -1,146 +1,73 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import CinematicScene from "./CinematicScene";
 
 export default function Landing({ onGetStarted }) {
-  const [videoFinished, setVideoFinished] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowContent(true);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#05020b] text-violet-50 font-['Plus_Jakarta_Sans',sans-serif] relative overflow-hidden">
 
       {/* =========================================================
-          BACKGROUND VIDEO
+          CINEMATIC 3D BACKGROUND
       ========================================================== */}
+
       <div className="absolute inset-0 z-0">
+        <CinematicScene />
 
-        <video
-          className="absolute inset-0 w-full h-full object-cover"
-          src="/background.mp4"
-          autoPlay
-          muted
-          playsInline
-          onEnded={() => setVideoFinished(true)}
-        />
-
-        {/* Very subtle readability overlay.
-            NO blur is applied to the video. */}
+        {/* Readability overlay */}
         <div className="absolute inset-0 bg-black/10 pointer-events-none" />
 
         {/* Bottom cinematic fade */}
         <div
-          // className={`
-          //   absolute inset-x-0 bottom-0 h-[55%]
-          //   bg-gradient-to-t from-[#05020b] via-[#05020b]/50 to-transparent
-          //   pointer-events-none
-          //   transition-opacity duration-1000
-          //   ${videoFinished ? "opacity-100" : "opacity-0"}
-          // `}
+          className="
+            absolute
+            inset-x-0
+            bottom-0
+            h-[45%]
+            bg-gradient-to-t
+            from-[#05020b]
+            via-[#05020b]/40
+            to-transparent
+            pointer-events-none
+          "
         />
-
       </div>
-
 
       {/* =========================================================
           LANDING CONTENT
       ========================================================== */}
-      <div
-        className={`
-          relative z-10
-          min-h-screen
-          flex items-end justify-center
-          px-5 sm:px-8
-          pb-2 sm:pb-14 lg:pb-8
-          transition-all
-          duration-[1400ms]
-          ease-[cubic-bezier(0.22,1,0.36,1)]
-          ${videoFinished
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-10 pointer-events-none"
-          }
-        `}
-      >
 
-        {/* =====================================================
-            HERO CONTENT
-        ====================================================== */}
+      <div
+        className="
+          relative
+          z-10
+          min-h-screen
+          flex
+          items-end
+          justify-center
+          px-5
+          sm:px-8
+          pb-2
+          sm:pb-14
+          lg:pb-8
+        "
+      >
         <div className="w-full max-w-3xl text-center">
 
-
-          {/* Main heading */}
-
-          {/* <h1
-            className="
-              text-3xl
-              sm:text-4xl
-              lg:text-5xl
-              font-extrabold
-              tracking-tight
-              leading-[1.05]
-              text-white
-            "
-          >Stream<span
-              className="
-                bg-gradient-to-r
-                from-purple-400
-                via-fuchsia-300
-                to-violet-300
-                bg-clip-text
-                text-transparent
-              "
-            >lo
-            </span>
-          </h1>
-
-
-          <h1
-            className="
-              text-3xl
-              sm:text-4xl
-              lg:text-5xl
-              font-extrabold
-              tracking-tight
-              leading-[1.05]
-              text-white
-            "
-          >
-            Watch together.
-            <span
-              className="
-                ml-2
-                bg-gradient-to-r
-                from-purple-400
-                via-fuchsia-300
-                to-violet-300
-                bg-clip-text
-                text-transparent
-              "
-            >
-              Anywhere.
-            </span>
-          </h1> */}
-
-
-          {/* Description */}
-          {/* <p
-            className="
-              max-w-xl
-              mx-auto
-              mt-4
-              text-sm
-              sm:text-base
-              leading-relaxed
-              text-purple-100/65
-            "
-          >
-            Turn your Google Drive videos into a shared cinema.
-            Sync playback in real time, talk with friends, and chat
-            while you watch.
-          </p> */}
-
-
           {/* =================================================
-              ACTION AREA
+              MAIN CTA
           ================================================== */}
+
           <div
-            className="
+            className={`
               mt-7
               pb-8
               flex
@@ -149,10 +76,18 @@ export default function Landing({ onGetStarted }) {
               items-center
               justify-center
               gap-3
-            "
-          >
 
-            {/* Main CTA */}
+              transition-all
+              duration-[1200ms]
+              ease-[cubic-bezier(0.22,1,0.36,1)]
+
+              ${
+                showContent
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-12 pointer-events-none"
+              }
+            `}
+          >
             <button
               onClick={onGetStarted}
               className="
@@ -214,15 +149,14 @@ export default function Landing({ onGetStarted }) {
                 />
               </svg>
             </button>
-
-
-      
           </div>
 
+          {/* =================================================
+              FEATURE ROW
+          ================================================== */}
 
-          {/* Tiny feature row */}
           <div
-            className="
+            className={`
               mt-6
               flex
               flex-wrap
@@ -234,7 +168,18 @@ export default function Landing({ onGetStarted }) {
               uppercase
               tracking-[0.18em]
               text-purple-200/35
-            "
+
+              transition-all
+              duration-[1200ms]
+              delay-200
+              ease-[cubic-bezier(0.22,1,0.36,1)]
+
+              ${
+                showContent
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-8 pointer-events-none"
+              }
+            `}
           >
             <span>Real-time sync</span>
 
@@ -249,62 +194,6 @@ export default function Landing({ onGetStarted }) {
 
         </div>
       </div>
-
-
-      {/* =========================================================
-          TOP BRAND MARK
-          Appears only after video ends.
-      ========================================================== */}
-      {/* <div
-        className={`
-          absolute
-          top-6
-          left-6
-          sm:top-8
-          sm:left-8
-          z-20
-
-          transition-all
-          duration-1000
-          ${videoFinished
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 -translate-y-3"
-          }
-        `}
-      >
-        <div className="flex items-center gap-2">
-
-          <div
-            className="
-              w-7
-              h-7
-              rounded-lg
-              flex
-              items-center
-              justify-center
-            "
-          >
-            <img
-              src="../../public/minilogo.png"
-              alt="Logo"
-            />
-          </div>
-
-          <span
-            className="
-              text-sm
-              font-bold
-              tracking-tight
-              text-white
-            "
-          >
-            Stream
-            <span className="text-purple-400">lo</span>
-          </span>
-
-        </div>
-      </div> */}
-
-    </div >
+    </div>
   );
 }
