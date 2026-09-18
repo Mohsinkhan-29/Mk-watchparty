@@ -81,12 +81,25 @@ export default function DrivePicker({ accessToken, onPick }) {
     setLoading(true);
 
     try {
-      const view = new window.google.picker.DocsView(
-        window.google.picker.ViewId.DOCS_VIDEOS
-      )
+      const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
         .setOwnedByMe(true)
         .setIncludeFolders(true)
-        .setSelectFolderEnabled(false);
+        .setSelectFolderEnabled(false)
+        .setMimeTypes(
+          [
+            'video/mp4',
+            'video/quicktime',
+            'video/x-msvideo',
+            'video/x-ms-wmv',
+            'video/x-flv',
+            'video/3gpp',
+            'video/3gpp2',
+            'video/webm',
+            'video/ogg',
+            'video/mpeg',
+            'video/x-matroska', // .mkv
+          ].join(',')
+        );
 
       const builder = new window.google.picker.PickerBuilder()
         .addView(view)
