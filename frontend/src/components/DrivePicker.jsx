@@ -4,6 +4,29 @@ const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const RAW_APP_ID = import.meta.env.VITE_GOOGLE_APP_ID || '';
 const GAPI_SCRIPT_SRC = 'https://apis.google.com/js/api.js';
 
+const VIDEO_MIME_TYPES = [
+  'video/mp4',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/x-ms-wmv',
+  'video/x-flv',
+  'video/3gpp',
+  'video/3gpp2',
+  'video/webm',
+  'video/ogg',
+  'video/mpeg',
+  'x-matroska', // .mkv (only catches files Drive tagged correctly)
+];
+
+// Drive often mis-tags .mkv (and other less common containers) as this
+// generic binary type. We allow it through the picker and rely on the
+// extension check below to decide whether it's actually a video.
+const FALLBACK_MIME_TYPES = ['application/octet-stream'];
+
+const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+
+const VIDEO_EXTENSION_RE = /\.(mkv|mp4|mov|avi|wmv|flv|webm|ogv|ogg|mpeg|mpg|m4v|3gp|3g2)$/i;
+
 export default function DrivePicker({ accessToken, onPick }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,19 +109,7 @@ export default function DrivePicker({ accessToken, onPick }) {
         .setIncludeFolders(true)
         .setSelectFolderEnabled(false)
         .setMimeTypes(
-          [
-            'video/mp4',
-            'video/quicktime',
-            'video/x-msvideo',
-            'video/x-ms-wmv',
-            'video/x-flv',
-            'video/3gpp',
-            'video/3gpp2',
-            'video/webm',
-            'video/ogg',
-            'video/mpeg',
-            'video/x-matroska', // .mkv
-          ].join(',')
+          [...VIDEO_MIME_TYPES, ...FALLBACK_MIME_TYPES, FOLDER_MIME_TYPE].join(',')
         );
 
       const builder = new window.google.picker.PickerBuilder()
@@ -111,9 +122,20 @@ export default function DrivePicker({ accessToken, onPick }) {
 
           if (action === PICKED && docs?.[0]) {
             const file = docs[0];
+
+            const isKnownVideoMime = VIDEO_MIME_TYPES.includes(file.mimeType);
+            const isLikelyVideoByName = VIDEO_EXTENSION_RE.test(file.name || '');
+
+            if (!isKnownVideoMime && !isLikelyVideoByName) {
+              setError(`"${file.name}" doesn't look like a supported video file.`);
+              setLoading(false);
+              return;
+            }
+
             onPick?.({
               fileId: file.id,
               fileName: file.name,
+              mimeType: file.mimeType,
               url: file.url,
               accessToken: token,
             });
