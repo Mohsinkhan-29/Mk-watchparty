@@ -4,6 +4,16 @@ import useDrivePicker from 'react-google-drive-picker';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 const DEVELOPER_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
 
+// Matches Drive's own recognized video MIME types when it tags a file correctly.
+const VIDEO_MIME_PREFIX = 'video/';
+
+// Fallback: Drive frequently mis-tags less common containers (.mkv, .avi,
+// AV1/HEVC-in-MKV especially) as a generic binary type instead of a video/*
+// type. We can't filter the picker view on this safely, so we allow
+// everything through and validate by extension after pick instead.
+const VIDEO_EXTENSION_RE =
+  /\.(mkv|mp4|mov|avi|wmv|flv|webm|ogv|ogg|mpeg|mpg|m4v|3gp|3g2|ts|m2ts)$/i;
+
 export default function RoomBar({
   roomId,
   connected,
@@ -28,7 +38,12 @@ export default function RoomBar({
     openPicker({
       clientId: CLIENT_ID,
       developerKey: DEVELOPER_KEY,
-      viewId: 'DOCS_VIDEOS',
+      // 'DOCS_VIDEOS' is Google's curated video view — it only surfaces a
+      // small fixed set of "known" video MIME types and silently hides
+      // anything Drive didn't confidently tag as video/* (common for .mkv,
+      // .avi, AV1 content). Using the general 'DOCS' view instead shows
+      // every file, and we validate video-ness ourselves below.
+      viewId: 'DOCS',
       token: activeToken,
       showUploadView: true,
       showUploadFolders: true,
@@ -37,6 +52,22 @@ export default function RoomBar({
       callbackFunction: (data) => {
         if (data.action === 'picked' && data.docs?.[0]) {
           const file = data.docs[0];
+
+          // Debug aid: check the console to see what MIME type Drive
+          // actually reports for files that were previously hidden.
+          console.log('Picked file:', file.name, '| mimeType:', file.mimeType);
+
+          const isKnownVideoMime = file.mimeType?.startsWith(VIDEO_MIME_PREFIX);
+          const isLikelyVideoByName = VIDEO_EXTENSION_RE.test(file.name || '');
+
+          if (!isKnownVideoMime && !isLikelyVideoByName) {
+            alert(
+              `"${file.name}" doesn't look like a supported video file (type: ${
+                file.mimeType || 'unknown'
+              }).`
+            );
+            return;
+          }
 
           onFileSelect?.({
             fileId: file.id,
